@@ -16,6 +16,18 @@ def send_results():
     if not validate_answers(answers):
         return jsonify({'message': 'Invalid answers'}), 400
 
+    # delete previous answers for this level id
+    level_id = db.session.query(Question.level_id).filter(Question.id.in_(answers)).distinct().first()[0]
+    answers_to_delete = UserAnswer.query \
+        .filter_by(user_id=user_id, is_submitted=False) \
+        .join(Answer, UserAnswer.answer_id == Answer.id) \
+        .join(Question, Answer.question_id == Question.id) \
+        .filter(Question.level_id == level_id) \
+        .all()
+
+    for answer in answers_to_delete:
+        db.session.delete(answer)
+
     for answer_id in answers:
         user_answer = UserAnswer(
             user_id=user_id,
@@ -34,6 +46,9 @@ def get_not_submitted():
         level_id = int(request.args.get('level_id', 1))
     except ValueError:
         return jsonify({'message': 'Invalid level ID'}), 400
+    
+    is_submitted = request.args.get('is_submitted', 'false').lower() == 'true'
+    print(is_submitted)
     user_id = get_jwt_identity()
 
     if not level_id:
@@ -45,8 +60,10 @@ def get_not_submitted():
     if level_id < min_level_id or level_id > max_level_id:
         return jsonify({'message': 'Invalid level ID'}), 400
 
+    level_name = Level.query.get(level_id).name
+
     level_answers = UserAnswer.query \
-        .filter_by(user_id=user_id, is_submitted=False) \
+        .filter_by(user_id=user_id, is_submitted=is_submitted) \
         .join(Answer, UserAnswer.answer_id == Answer.id) \
         .join(Question, Answer.question_id == Question.id) \
         .filter(Question.level_id == level_id) \
@@ -54,6 +71,7 @@ def get_not_submitted():
     
     response = {
         'level_id': level_id,
+        'level_name': level_name,
         'next_level_id': level_id + 1 if level_id < max_level_id else None,
         'prev_level_id': level_id - 1 if level_id > min_level_id else None,
         'answers': []
@@ -67,15 +85,7 @@ def get_not_submitted():
             'max_points': 5,
             'user_points': answer.points
         })
-    
-    # print(level_answers)
-    # not_submitted_answers = UserAnswer.query \
-    #     .filter_by(user_id=user_id, is_submitted=False) \
-    #     .join(Question, UserAnswer.question_id == Question.id) \
-    #     .filter(Question.level_id == level_id) \
-    #     .all()
 
-    # response = [{'question_id': answer.question_id, 'answer_id': answer.answer_id} for answer in level_answers]
     return jsonify(response), 200
 
 @answers_bp.route('/submit', methods=['POST'])
@@ -87,12 +97,19 @@ def submit():
 
     if not level_id:
         return jsonify({'message': 'Level ID is required'}), 400
+    
+    # get all answer ids for this level
+    answer_ids = db.session.query(Answer.id) \
+        .join(Question, Answer.question_id == Question.id) \
+        .filter(Question.level_id == level_id) \
+        .all()
+    answer_ids = [answer_id[0] for answer_id in answer_ids]
 
+    # update all user answers for this level to submitted
     UserAnswer.query \
         .filter_by(user_id=user_id, is_submitted=False) \
-        .join(Question, UserAnswer.question_id == Question.id) \
-        .filter(Question.level_id == level_id) \
-        .update({'is_submitted': True}, synchronize_session=False)
+        .filter(UserAnswer.answer_id.in_(answer_ids)) \
+        .update({UserAnswer.is_submitted: True}, synchronize_session=False)
 
     db.session.commit()
     return jsonify({'message': 'Answers submitted successfully'}), 200
