@@ -17,7 +17,8 @@ def send_results():
         return jsonify({'message': 'Invalid answers'}), 400
 
     # delete previous answers for this level id
-    level_id = db.session.query(Question.level_id).filter(Question.id.in_(answers)).distinct().first()[0]
+    question_id = Answer.query.get(answers[0]).question_id
+    level_id = Question.query.get(question_id).level_id
     answers_to_delete = UserAnswer.query \
         .filter_by(user_id=user_id, is_submitted=False) \
         .join(Answer, UserAnswer.answer_id == Answer.id) \
