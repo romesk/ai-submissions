@@ -30,3 +30,4 @@ class UserAnswer(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     answer_id = db.Column(db.Integer, db.ForeignKey('answer.id'), nullable=False)
     is_submitted = db.Column(db.Boolean, default=False)
+    answer = db.relationship('Answer', backref='user_answers')

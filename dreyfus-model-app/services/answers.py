@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from services.utils import validate_answers
+from services.utils import validate_answers, get_user_answers
 from models import Level, Question, Answer, UserAnswer, db
 
 answers_bp = Blueprint('answers', __name__, url_prefix='/answers')
@@ -41,15 +41,6 @@ def send_results():
     return jsonify({'message': 'Answers sent successfully'}), 201
 
 
-def get_user_answers(user_id: int, level_id: int, is_submitted: bool) -> list[UserAnswer]:
-    return UserAnswer.query \
-        .filter_by(user_id=user_id, is_submitted=is_submitted) \
-        .join(Answer, UserAnswer.answer_id == Answer.id) \
-        .join(Question, Answer.question_id == Question.id) \
-        .filter(Question.level_id == level_id) \
-        .all()
-
-
 @answers_bp.route('', methods=['GET'])
 @jwt_required()
 def get_not_submitted():
@@ -72,7 +63,8 @@ def get_not_submitted():
 
     level_name = Level.query.get(level_id).name
 
-    level_answers = get_user_answers(user_id, level_id, False) or get_user_answers(user_id, level_id, True)
+    level_list = [level_id]
+    level_answers = get_user_answers(user_id, level_list, False) or get_user_answers(user_id, level_list, True)
     
     response = {
         'level_id': level_id,

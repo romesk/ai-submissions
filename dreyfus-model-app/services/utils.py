@@ -1,5 +1,5 @@
 
-from models import Level, Question, Answer, db
+from models import Level, Question, Answer, UserAnswer, db
 
 
 def validate_answers(answers: list[int]) -> bool:
@@ -26,3 +26,12 @@ def validate_answers(answers: list[int]) -> bool:
         return False
     
     return True
+
+
+def get_user_answers(user_id: int, level_ids: list[int], is_submitted: bool) -> list[UserAnswer]:
+    return UserAnswer.query \
+        .filter_by(user_id=user_id, is_submitted=is_submitted) \
+        .join(Answer, UserAnswer.answer_id == Answer.id) \
+        .join(Question, Answer.question_id == Question.id) \
+        .filter(Question.level_id.in_(level_ids)) \
+        .all()
