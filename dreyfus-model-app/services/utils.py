@@ -35,3 +35,17 @@ def get_user_answers(user_id: int, level_ids: list[int], is_submitted: bool) -> 
         .join(Question, Answer.question_id == Question.id) \
         .filter(Question.level_id.in_(level_ids)) \
         .all()
+
+
+def delete_user_answers(user_id: int, level_id: int, is_submitted: bool) -> None:
+    answers_to_delete = UserAnswer.query \
+        .filter_by(user_id=user_id, is_submitted=is_submitted) \
+        .join(Answer, UserAnswer.answer_id == Answer.id) \
+        .join(Question, Answer.question_id == Question.id) \
+        .filter(Question.level_id == level_id) \
+        .all()
+    
+    print(answers_to_delete)
+    
+    for answer in answers_to_delete:
+        db.session.delete(answer)

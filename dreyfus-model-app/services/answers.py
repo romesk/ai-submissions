@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request, g
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
-from services.utils import validate_answers, get_user_answers
+from services.utils import delete_user_answers, validate_answers, get_user_answers
 from models import Level, Question, Answer, UserAnswer, db
 
 answers_bp = Blueprint('answers', __name__, url_prefix='/answers')
@@ -19,15 +19,7 @@ def send_results():
     # delete previous answers for this level id
     question_id = Answer.query.get(answers[0]).question_id
     level_id = Question.query.get(question_id).level_id
-    answers_to_delete = UserAnswer.query \
-        .filter_by(user_id=user_id, is_submitted=False) \
-        .join(Answer, UserAnswer.answer_id == Answer.id) \
-        .join(Question, Answer.question_id == Question.id) \
-        .filter(Question.level_id == level_id) \
-        .all()
-
-    for answer in answers_to_delete:
-        db.session.delete(answer)
+    delete_user_answers(user_id, level_id, False)
 
     for answer_id in answers:
         user_answer = UserAnswer(
@@ -96,12 +88,23 @@ def submit():
     if not level_id:
         return jsonify({'message': 'Level ID is required'}), 400
     
+    # get user submitted answers for this level
+    user_unsubmitted_answers = get_user_answers(user_id, [level_id], False)
+
+    if not user_unsubmitted_answers:
+        return jsonify({'message': 'All answers are already submitted'}), 200
+    
     # get all answer ids for this level
     answer_ids = db.session.query(Answer.id) \
         .join(Question, Answer.question_id == Question.id) \
         .filter(Question.level_id == level_id) \
         .all()
     answer_ids = [answer_id[0] for answer_id in answer_ids]
+
+    # delete previous answers for this level id
+    question_id = Answer.query.get(answer_ids[0]).question_id
+    level_id = Question.query.get(question_id).level_id
+    delete_user_answers(user_id, level_id, True)
 
     # update all user answers for this level to submitted
     UserAnswer.query \
