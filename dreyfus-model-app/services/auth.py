@@ -29,7 +29,7 @@ def signup():
     fullname = data.get('fullname')
 
     if not username or not password or not fullname:
-        return jsonify({'message': 'Missing username, password, or fullname'}), 400
+        return jsonify({'message': 'Missing username, password, or full name'}), 400
 
     existing_user = User.query.filter_by(username=username).first()
     if existing_user:
