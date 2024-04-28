@@ -30,7 +30,7 @@ def send_results():
         db.session.add(user_answer)
 
     db.session.commit()
-    return jsonify({'message': 'Answers sent successfully'}), 201
+    return jsonify({'message': 'Відповіді успішно записано!'}), 201
 
 
 @answers_bp.route('', methods=['GET'])
@@ -92,7 +92,7 @@ def submit():
     user_unsubmitted_answers = get_user_answers(user_id, [level_id], False)
 
     if not user_unsubmitted_answers:
-        return jsonify({'message': 'All answers are already submitted'}), 200
+        return jsonify({'message': 'Відповіді успішно записано!'}), 200
     
     # get all answer ids for this level
     answer_ids = db.session.query(Answer.id) \
@@ -113,4 +113,4 @@ def submit():
         .update({UserAnswer.is_submitted: True}, synchronize_session=False)
 
     db.session.commit()
-    return jsonify({'message': 'Answers submitted successfully'}), 200
+    return jsonify({'message': 'Відповіді успішно записано!'}), 200

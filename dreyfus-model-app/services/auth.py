@@ -17,7 +17,7 @@ def login():
 
     if user and check_password_hash(user.password, password):
         access_token = create_access_token(identity=user.id, expires_delta=datetime.timedelta(days=1))
-        return jsonify(message='Successfully logged in.', access_token=access_token), 200
+        return jsonify(message='Успішний вхід!.', access_token=access_token), 200
     else:
         return jsonify({'message': 'Invalid username or password'}), 401
 
@@ -40,4 +40,4 @@ def signup():
     db.session.add(new_user)
     db.session.commit()
 
-    return jsonify({'message': 'User created successfully'}), 201
+    return jsonify({'message': 'Успішно зареєстровано!'}), 201
